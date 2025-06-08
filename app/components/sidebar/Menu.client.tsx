@@ -2,7 +2,7 @@ import { motion, type Variants } from 'framer-motion';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+// import { ThemeSwitch } from '~/components/ui/ThemeSwitch'; // Removed import
 import { ControlPanel } from '~/components/@settings/core/ControlPanel';
 import { SettingsButton } from '~/components/ui/SettingsButton';
 import { Button } from '~/components/ui/Button';
@@ -526,7 +526,7 @@ export const Menu = () => {
           </div>
           <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-800 px-4 py-3">
             <SettingsButton onClick={handleSettingsClick} />
-            <ThemeSwitch />
+            {/* <ThemeSwitch /> Removed component */}
           </div>
         </div>
       </motion.div>

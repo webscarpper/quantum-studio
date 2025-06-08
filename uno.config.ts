@@ -232,10 +232,10 @@ export default defineConfig({
   transformers: [transformerDirectives()],
   presets: [
     presetUno({
-      dark: {
-        light: '[data-theme="light"]',
-        dark: '[data-theme="dark"]',
-      },
+      dark: { // Use DarkModeSelectors object
+        dark: '[data-theme="quantum-dark"]', 
+        // No light selector needed as quantum-dark is the only theme
+      }, 
     }),
     presetIcons({
       warn: true,

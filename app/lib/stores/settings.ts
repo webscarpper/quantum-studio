@@ -9,7 +9,7 @@ import type {
 } from '~/components/@settings/core/types';
 import { DEFAULT_TAB_CONFIG } from '~/components/@settings/core/constants';
 import Cookies from 'js-cookie';
-import { toggleTheme } from './theme';
+// import { toggleTheme } from './theme'; // Removed as theme is now fixed
 import { create } from 'zustand';
 
 export interface Shortcut {
@@ -25,7 +25,7 @@ export interface Shortcut {
 }
 
 export interface Shortcuts {
-  toggleTheme: Shortcut;
+  // toggleTheme: Shortcut; // Removed as theme is now fixed
   toggleTerminal: Shortcut;
 }
 
@@ -34,17 +34,9 @@ export const LOCAL_PROVIDERS = ['OpenAILike', 'LMStudio', 'Ollama'];
 
 export type ProviderSetting = Record<string, IProviderConfig>;
 
-// Simplified shortcuts store with only theme toggle
-export const shortcutsStore = map<Shortcuts>({
-  toggleTheme: {
-    key: 'd',
-    metaKey: true,
-    altKey: true,
-    shiftKey: true,
-    action: () => toggleTheme(),
-    description: 'Toggle theme',
-    isPreventDefault: true,
-  },
+// Simplified shortcuts store
+export const shortcutsStore = map<Partial<Shortcuts>>({ // Made Partial as toggleTheme is removed
+  // toggleTheme shortcut removed
   toggleTerminal: {
     key: '`',
     ctrlOrMetaKey: true,
@@ -200,9 +192,10 @@ export const updatePromptId = (id: string) => {
 
 // Initialize tab configuration from localStorage or defaults
 const getInitialTabConfiguration = (): TabWindowConfig => {
+  // Since DEFAULT_TAB_CONFIG now only contains 'user' window tabs for the 12-card layout
   const defaultConfig: TabWindowConfig = {
-    userTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is UserTabConfig => tab.window === 'user'),
-    developerTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is DevTabConfig => tab.window === 'developer'),
+    userTabs: DEFAULT_TAB_CONFIG.map(tab => ({ ...tab, window: 'user' as const })), // Ensure type is UserTabConfig
+    developerTabs: [] as DevTabConfig[], // Developer tabs will be empty from default
   };
 
   if (!isBrowser) {
@@ -274,8 +267,8 @@ export const updateTabConfiguration = (config: TabVisibilityConfig) => {
 // Helper function to reset tab configuration
 export const resetTabConfiguration = () => {
   const defaultConfig: TabWindowConfig = {
-    userTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is UserTabConfig => tab.window === 'user'),
-    developerTabs: DEFAULT_TAB_CONFIG.filter((tab): tab is DevTabConfig => tab.window === 'developer'),
+    userTabs: DEFAULT_TAB_CONFIG.map(tab => ({ ...tab, window: 'user' as const })),
+    developerTabs: [] as DevTabConfig[],
   };
 
   tabConfigurationStore.set(defaultConfig);

@@ -29,6 +29,14 @@ import { filesToArtifacts } from '~/utils/fileUtils';
 import { supabaseConnection } from '~/lib/stores/supabase';
 import { defaultDesignScheme, type DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
+import {
+  selectedProviderStore,
+  selectedModelNameStore,
+  apiKeysStore,
+  loadInitialConfig,
+  setProviderList as setGlobalProviderList,
+  fetchModelsForProvider,
+} from '~/lib/stores/modelConfig';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -66,9 +74,6 @@ export function Chat() {
           );
         }}
         icon={({ type }) => {
-          /**
-           * @todo Handle more types if we need them. This may require extra color palettes.
-           */
           switch (type) {
             case 'success': {
               return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
@@ -77,7 +82,6 @@ export function Chat() {
               return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
             }
           }
-
           return undefined;
         }}
         position="bottom-right"
@@ -129,25 +133,18 @@ export const ChatImpl = memo(
     const [designScheme, setDesignScheme] = useState<DesignScheme>(defaultDesignScheme);
     const actionAlert = useStore(workbenchStore.alert);
     const deployAlert = useStore(workbenchStore.deployAlert);
-    const supabaseConn = useStore(supabaseConnection); // Add this line to get Supabase connection
+    const supabaseConn = useStore(supabaseConnection);
     const selectedProject = supabaseConn.stats?.projects?.find(
       (project) => project.id === supabaseConn.selectedProjectId,
     );
     const supabaseAlert = useStore(workbenchStore.supabaseAlert);
     const { activeProviders, promptId, autoSelectTemplate, contextOptimizationEnabled } = useSettings();
-    const [model, setModel] = useState(() => {
-      const savedModel = Cookies.get('selectedModel');
-      return savedModel || DEFAULT_MODEL;
-    });
-    const [provider, setProvider] = useState(() => {
-      const savedProvider = Cookies.get('selectedProvider');
-      return (PROVIDER_LIST.find((p) => p.name === savedProvider) || DEFAULT_PROVIDER) as ProviderInfo;
-    });
+    
     const { showChat } = useStore(chatStore);
     const [animationScope, animate] = useAnimate();
-    const [apiKeys, setApiKeys] = useState<Record<string, string>>({});
     const [chatMode, setChatMode] = useState<'discuss' | 'build'>('build');
     const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
+
     const {
       messages,
       isLoading,
@@ -163,8 +160,8 @@ export const ChatImpl = memo(
       setData,
     } = useChat({
       api: '/api/chat',
-      body: {
-        apiKeys,
+      body: { 
+        apiKeys: apiKeysStore.get(), 
         files,
         promptId,
         contextOptimization: contextOptimizationEnabled,
@@ -194,47 +191,65 @@ export const ChatImpl = memo(
       onFinish: (message, response) => {
         const usage = response.usage;
         setData(undefined);
-
         if (usage) {
           console.log('Token usage:', usage);
           logStore.logProvider('Chat response completed', {
             component: 'Chat',
             action: 'response',
-            model,
-            provider: provider.name,
+            model: selectedModelNameStore.get(), 
+            provider: selectedProviderStore.get()?.name || 'N/A',
             usage,
             messageLength: message.content.length,
           });
         }
-
         logger.debug('Finished streaming');
       },
       initialMessages,
       initialInput: Cookies.get(PROMPT_COOKIE_KEY) || '',
     });
+
+    const runAnimation = async () => {
+      if (chatStarted) {
+        return;
+      }
+      await Promise.all([
+        animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
+        animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
+      ]);
+      chatStore.setKey('started', true);
+      setChatStarted(true);
+    };
+    
+    useEffect(() => {
+      loadInitialConfig();
+      setGlobalProviderList(activeProviders || PROVIDER_LIST as ProviderInfo[]);
+      const initialProvider = selectedProviderStore.get();
+      if (initialProvider) {
+        fetchModelsForProvider(initialProvider.name);
+      }
+    }, [activeProviders]);
+
     useEffect(() => {
       const prompt = searchParams.get('prompt');
-
-      // console.log(prompt, searchParams, model, provider);
-
-      if (prompt) {
+      const currentModel = selectedModelNameStore.get();
+      const currentProvider = selectedProviderStore.get();
+      if (prompt && currentModel && currentProvider) {
         setSearchParams({});
-        runAnimation();
+        runAnimation(); 
         append({
           role: 'user',
           content: [
             {
               type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${prompt}`,
+              text: `[Model: ${currentModel}]\n\n[Provider: ${currentProvider.name}]\n\n${prompt}`,
             },
-          ] as any, // Type assertion to bypass compiler check
+          ] as any, 
         });
       }
-    }, [model, provider, searchParams]);
+    }, [searchParams, append, setSearchParams, runAnimation]); 
 
     const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
     const { parsedMessages, parseMessages } = useMessageParser();
-
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
     useEffect(() => {
@@ -253,7 +268,6 @@ export const ChatImpl = memo(
 
     const scrollTextArea = () => {
       const textarea = textareaRef.current;
-
       if (textarea) {
         textarea.scrollTop = textarea.scrollHeight;
       }
@@ -263,60 +277,38 @@ export const ChatImpl = memo(
       stop();
       chatStore.setKey('aborted', true);
       workbenchStore.abortAllActions();
-
       logStore.logProvider('Chat response aborted', {
         component: 'Chat',
         action: 'abort',
-        model,
-        provider: provider.name,
+        model: selectedModelNameStore.get(), 
+        provider: selectedProviderStore.get()?.name || 'N/A', 
       });
     };
 
     useEffect(() => {
       const textarea = textareaRef.current;
-
       if (textarea) {
         textarea.style.height = 'auto';
-
         const scrollHeight = textarea.scrollHeight;
-
         textarea.style.height = `${Math.min(scrollHeight, TEXTAREA_MAX_HEIGHT)}px`;
         textarea.style.overflowY = scrollHeight > TEXTAREA_MAX_HEIGHT ? 'auto' : 'hidden';
       }
     }, [input, textareaRef]);
 
-    const runAnimation = async () => {
-      if (chatStarted) {
-        return;
-      }
-
-      await Promise.all([
-        animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
-        animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
-      ]);
-
-      chatStore.setKey('started', true);
-
-      setChatStarted(true);
-    };
-
     const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
+      const currentModel = selectedModelNameStore.get(); 
+      const currentProvider = selectedProviderStore.get(); 
       const messageContent = messageInput || input;
 
-      if (!messageContent?.trim()) {
-        return;
-      }
-
+      if (!messageContent?.trim()) return;
       if (isLoading) {
         abort();
         return;
       }
 
       let finalMessageContent = messageContent;
-
       if (selectedElement) {
         console.log('Selected Element:', selectedElement);
-
         const elementInfo = `<div class=\"__boltSelectedElement__\" data-element='${JSON.stringify(selectedElement)}'>${JSON.stringify(`${selectedElement.displayText}`)}</div>`;
         finalMessageContent = messageContent + elementInfo;
       }
@@ -325,167 +317,73 @@ export const ChatImpl = memo(
 
       if (!chatStarted) {
         setFakeLoading(true);
-
         if (autoSelectTemplate) {
+          if (!currentModel || !currentProvider) {
+            toast.error("Please select a provider and model in settings before starting a new chat with auto-template.");
+            setFakeLoading(false);
+            return;
+          }
           const { template, title } = await selectStarterTemplate({
             message: finalMessageContent,
-            model,
-            provider,
+            model: currentModel, 
+            provider: currentProvider,
           });
 
           if (template !== 'blank') {
             const temResp = await getTemplates(template, title).catch((e) => {
-              if (e.message.includes('rate limit')) {
-                toast.warning('Rate limit exceeded. Skipping starter template\n Continuing with blank template');
-              } else {
-                toast.warning('Failed to import starter template\n Continuing with blank template');
-              }
-
+              toast.warning(e.message.includes('rate limit') ? 'Rate limit exceeded. Skipping starter template\n Continuing with blank template' : 'Failed to import starter template\n Continuing with blank template');
               return null;
             });
 
             if (temResp) {
               const { assistantMessage, userMessage } = temResp;
+              const freshModel = selectedModelNameStore.get(); 
+              const freshProvider = selectedProviderStore.get();
+              if (!freshModel || !freshProvider) {
+                toast.error("Please configure your AI provider and model first.");
+                setFakeLoading(false);
+                return;
+              }
               setMessages([
-                {
-                  id: `1-${new Date().getTime()}`,
-                  role: 'user',
-                  content: [
-                    {
-                      type: 'text',
-                      text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
-                    },
-                    ...imageDataList.map((imageData) => ({
-                      type: 'image',
-                      image: imageData,
-                    })),
-                  ] as any,
-                },
-                {
-                  id: `2-${new Date().getTime()}`,
-                  role: 'assistant',
-                  content: assistantMessage,
-                },
-                {
-                  id: `3-${new Date().getTime()}`,
-                  role: 'user',
-                  content: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userMessage}`,
-                  annotations: ['hidden'],
-                },
+                { id: `1-${Date.now()}`, role: 'user', content: [{ type: 'text', text: `[Model: ${freshModel}]\n\n[Provider: ${freshProvider.name}]\n\n${finalMessageContent}` }, ...imageDataList.map(imageData => ({ type: 'image', image: imageData }))] as any },
+                { id: `2-${Date.now()}`, role: 'assistant', content: assistantMessage },
+                { id: `3-${Date.now()}`, role: 'user', content: `[Model: ${freshModel}]\n\n[Provider: ${freshProvider.name}]\n\n${userMessage}`, annotations: ['hidden'] },
               ]);
-              reload();
-              setInput('');
-              Cookies.remove(PROMPT_COOKIE_KEY);
-
-              setUploadedFiles([]);
-              setImageDataList([]);
-
+              reload(); 
+              setInput(''); Cookies.remove(PROMPT_COOKIE_KEY);
+              setUploadedFiles([]); setImageDataList([]);
               resetEnhancer();
-
               textareaRef.current?.blur();
               setFakeLoading(false);
-
               return;
             }
           }
         }
-
-        // If autoSelectTemplate is disabled or template selection failed, proceed with normal message
-        setMessages([
-          {
-            id: `${new Date().getTime()}`,
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
-              },
-              ...imageDataList.map((imageData) => ({
-                type: 'image',
-                image: imageData,
-              })),
-            ] as any,
-          },
-        ]);
-        reload();
+        const modelForMsg = currentModel || DEFAULT_MODEL;
+        const providerForMsg = currentProvider || DEFAULT_PROVIDER;
+        setMessages([{ id: `${Date.now()}`, role: 'user', content: [{ type: 'text', text: `[Model: ${modelForMsg}]\n\n[Provider: ${providerForMsg.name}]\n\n${finalMessageContent}` }, ...imageDataList.map(imageData => ({ type: 'image', image: imageData }))] as any }]);
+        reload(); 
         setFakeLoading(false);
-        setInput('');
-        Cookies.remove(PROMPT_COOKIE_KEY);
-
-        setUploadedFiles([]);
-        setImageDataList([]);
-
-        resetEnhancer();
-
-        textareaRef.current?.blur();
-
-        return;
+      } else { 
+        const modelForMsg = currentModel || DEFAULT_MODEL;
+        const providerForMsg = currentProvider || DEFAULT_PROVIDER;
+        const modifiedFiles = workbenchStore.getModifiedFiles();
+        chatStore.setKey('aborted', false);
+        const contentPrefix = modifiedFiles ? filesToArtifacts(modifiedFiles, `${Date.now()}`) : '';
+        append({ role: 'user', content: [{ type: 'text', text: `[Model: ${modelForMsg}]\n\n[Provider: ${providerForMsg.name}]\n\n${contentPrefix}${finalMessageContent}` }, ...imageDataList.map(imageData => ({ type: 'image', image: imageData }))] as any });
+        if (modifiedFiles) workbenchStore.resetAllFileModifications();
       }
 
-      if (error != null) {
-        setMessages(messages.slice(0, -1));
-      }
-
-      const modifiedFiles = workbenchStore.getModifiedFiles();
-
-      chatStore.setKey('aborted', false);
-
-      if (modifiedFiles !== undefined) {
-        const userUpdateArtifact = filesToArtifacts(modifiedFiles, `${Date.now()}`);
-        append({
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${userUpdateArtifact}${finalMessageContent}`,
-            },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
-          ] as any,
-        });
-
-        workbenchStore.resetAllFileModifications();
-      } else {
-        append({
-          role: 'user',
-          content: [
-            {
-              type: 'text',
-              text: `[Model: ${model}]\n\n[Provider: ${provider.name}]\n\n${finalMessageContent}`,
-            },
-            ...imageDataList.map((imageData) => ({
-              type: 'image',
-              image: imageData,
-            })),
-          ] as any,
-        });
-      }
-
-      setInput('');
-      Cookies.remove(PROMPT_COOKIE_KEY);
-
-      setUploadedFiles([]);
-      setImageDataList([]);
-
+      setInput(''); Cookies.remove(PROMPT_COOKIE_KEY);
+      setUploadedFiles([]); setImageDataList([]);
       resetEnhancer();
-
       textareaRef.current?.blur();
     };
 
-    /**
-     * Handles the change event for the textarea and updates the input state.
-     * @param event - The change event from the textarea.
-     */
     const onTextareaChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
       handleInputChange(event);
     };
 
-    /**
-     * Debounced function to cache the prompt in cookies.
-     * Caches the trimmed value of the textarea input after a delay to optimize performance.
-     */
     const debouncedCachePrompt = useCallback(
       debounce((event: React.ChangeEvent<HTMLTextAreaElement>) => {
         const trimmedValue = event.target.value.trim();
@@ -493,24 +391,6 @@ export const ChatImpl = memo(
       }, 1000),
       [],
     );
-
-    useEffect(() => {
-      const storedApiKeys = Cookies.get('apiKeys');
-
-      if (storedApiKeys) {
-        setApiKeys(JSON.parse(storedApiKeys));
-      }
-    }, []);
-
-    const handleModelChange = (newModel: string) => {
-      setModel(newModel);
-      Cookies.set('selectedModel', newModel, { expires: 30 });
-    };
-
-    const handleProviderChange = (newProvider: ProviderInfo) => {
-      setProvider(newProvider);
-      Cookies.set('selectedProvider', newProvider.name, { expires: 30 });
-    };
 
     return (
       <BaseChat
@@ -520,46 +400,27 @@ export const ChatImpl = memo(
         showChat={showChat}
         chatStarted={chatStarted}
         isStreaming={isLoading || fakeLoading}
-        onStreamingChange={(streaming) => {
-          streamingState.set(streaming);
-        }}
+        onStreamingChange={(streaming) => streamingState.set(streaming)}
         enhancingPrompt={enhancingPrompt}
         promptEnhanced={promptEnhanced}
         sendMessage={sendMessage}
-        model={model}
-        setModel={handleModelChange}
-        provider={provider}
-        setProvider={handleProviderChange}
-        providerList={activeProviders}
-        handleInputChange={(e) => {
-          onTextareaChange(e);
-          debouncedCachePrompt(e);
-        }}
+        model={selectedModelNameStore.get() || DEFAULT_MODEL} // Pass model from store
+        provider={selectedProviderStore.get() || DEFAULT_PROVIDER as ProviderInfo} // Pass provider from store
+        providerList={activeProviders || PROVIDER_LIST as ProviderInfo[]} // Pass activeProviders
+        handleInputChange={(e) => { onTextareaChange(e); debouncedCachePrompt(e); }}
         handleStop={abort}
         description={description}
         importChat={importChat}
         exportChat={exportChat}
-        messages={messages.map((message, i) => {
-          if (message.role === 'user') {
-            return message;
-          }
-
-          return {
-            ...message,
-            content: parsedMessages[i] || '',
-          };
-        })}
+        messages={messages.map((message, i) => message.role === 'user' ? message : { ...message, content: parsedMessages[i] || '' })}
         enhancePrompt={() => {
-          enhancePrompt(
-            input,
-            (input) => {
-              setInput(input);
-              scrollTextArea();
-            },
-            model,
-            provider,
-            apiKeys,
-          );
+          const currentModel = selectedModelNameStore.get();
+          const currentProvider = selectedProviderStore.get();
+          if (!currentModel || !currentProvider) {
+            toast.error("Please select a provider and model first.");
+            return;
+          }
+          enhancePrompt(input, (newInput) => { setInput(newInput); scrollTextArea(); }, currentModel, currentProvider, apiKeysStore.get());
         }}
         uploadedFiles={uploadedFiles}
         setUploadedFiles={setUploadedFiles}

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion';
 import * as Tooltip from '@radix-ui/react-tooltip';
+import { Icon } from '@iconify/react'; // Import Icon component
 import { classNames } from '~/utils/classNames';
 import type { TabVisibilityConfig } from '~/components/@settings/core/types';
 import { TAB_LABELS, TAB_ICONS } from '~/components/@settings/core/constants';
@@ -34,8 +35,8 @@ export const TabTile: React.FC<TabTileProps> = ({
           <motion.div
             onClick={onClick}
             className={classNames(
-              'relative flex flex-col items-center p-6 rounded-xl',
-              'w-full h-full min-h-[160px]',
+              'relative flex flex-col items-center p-4 rounded-xl', // Reduced padding from p-6 to p-4
+              'w-full h-full min-h-[140px]', // Reduced min-height from 160px to 140px
               'bg-white dark:bg-[#141414]',
               'border border-[#E5E5E5] dark:border-[#333333]',
               'group',
@@ -62,10 +63,10 @@ export const TabTile: React.FC<TabTileProps> = ({
                   isActive ? 'bg-purple-500/10 dark:bg-purple-500/10 ring-purple-500/30 dark:ring-purple-500/20' : '',
                 )}
               >
-                <motion.div
+                <Icon
+                  icon={TAB_ICONS[tab.id]}
                   className={classNames(
-                    TAB_ICONS[tab.id],
-                    'w-8 h-8',
+                    'w-8 h-8', // Corresponds to width="32" height="32"
                     'text-gray-600 dark:text-gray-300',
                     'group-hover:text-purple-500 dark:group-hover:text-purple-400/80',
                     isActive ? 'text-purple-500 dark:text-purple-400/90' : '',
@@ -74,10 +75,10 @@ export const TabTile: React.FC<TabTileProps> = ({
               </motion.div>
 
               {/* Label and Description */}
-              <div className="flex flex-col items-center mt-5 w-full">
+              <div className="flex flex-col items-center mt-3 w-full"> {/* Reduced margin-top from mt-5 to mt-3 */}
                 <h3
                   className={classNames(
-                    'text-[15px] font-medium leading-snug mb-2',
+                    'text-sm font-medium leading-snug mb-1', // Reduced font-size and mb
                     'text-gray-700 dark:text-gray-200',
                     'group-hover:text-purple-600 dark:group-hover:text-purple-300/90',
                     isActive ? 'text-purple-500 dark:text-purple-400/90' : '',
@@ -88,9 +89,9 @@ export const TabTile: React.FC<TabTileProps> = ({
                 {description && (
                   <p
                     className={classNames(
-                      'text-[13px] leading-relaxed',
+                      'text-xs leading-snug', // Reduced font-size and leading
                       'text-gray-500 dark:text-gray-400',
-                      'max-w-[85%]',
+                      'max-w-[90%]', // Allow slightly more width for description
                       'text-center',
                       'group-hover:text-purple-500 dark:group-hover:text-purple-400/70',
                       isActive ? 'text-purple-400 dark:text-purple-400/80' : '',

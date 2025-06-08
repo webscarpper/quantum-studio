@@ -1,54 +1,46 @@
 import { atom } from 'nanostores';
-import { logStore } from './logs';
+// import { logStore } from './logs'; // logStore might not be needed if toggleTheme is removed
 
-export type Theme = 'dark' | 'light';
+// Define the single theme name
+export type Theme = 'quantum-dark';
 
-export const kTheme = 'bolt_theme';
+export const kTheme = 'bolt_theme'; // This constant might become obsolete
 
+// This function will always return true for the single dark theme
 export function themeIsDark() {
-  return themeStore.get() === 'dark';
+  return true; 
 }
 
-export const DEFAULT_THEME = 'light';
+export const DEFAULT_THEME: Theme = 'quantum-dark';
 
-export const themeStore = atom<Theme>(initStore());
+// Initialize the store with the fixed theme
+export const themeStore = atom<Theme>(DEFAULT_THEME);
 
-function initStore() {
-  if (!import.meta.env.SSR) {
-    const persistedTheme = localStorage.getItem(kTheme) as Theme | undefined;
-    const themeAttribute = document.querySelector('html')?.getAttribute('data-theme');
+// initStore is no longer needed as the theme is fixed
+// function initStore() {
+//   if (!import.meta.env.SSR) {
+//     // Always set to quantum-dark, ignore persisted theme
+//     document.querySelector('html')?.setAttribute('data-theme', DEFAULT_THEME);
+//     localStorage.setItem(kTheme, DEFAULT_THEME);
+//     return DEFAULT_THEME;
+//   }
+//   return DEFAULT_THEME;
+// }
 
-    return persistedTheme ?? (themeAttribute as Theme) ?? DEFAULT_THEME;
+// toggleTheme function is no longer needed as there's only one theme
+// export function toggleTheme() {
+//   // No operation as theme is fixed
+//   // console.warn("Theme is fixed, toggleTheme has no effect.");
+// }
+
+// Ensure html attribute is set on client side if not already by entry.server.tsx
+if (typeof window !== 'undefined' && !import.meta.env.SSR) {
+  const currentHtmlTheme = document.documentElement.getAttribute('data-theme');
+  if (currentHtmlTheme !== DEFAULT_THEME) {
+    document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
   }
-
-  return DEFAULT_THEME;
-}
-
-export function toggleTheme() {
-  const currentTheme = themeStore.get();
-  const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-
-  // Update the theme store
-  themeStore.set(newTheme);
-
-  // Update localStorage
-  localStorage.setItem(kTheme, newTheme);
-
-  // Update the HTML attribute
-  document.querySelector('html')?.setAttribute('data-theme', newTheme);
-
-  // Update user profile if it exists
-  try {
-    const userProfile = localStorage.getItem('bolt_user_profile');
-
-    if (userProfile) {
-      const profile = JSON.parse(userProfile);
-      profile.theme = newTheme;
-      localStorage.setItem('bolt_user_profile', JSON.stringify(profile));
-    }
-  } catch (error) {
-    console.error('Error updating user profile theme:', error);
+  // Persist to localStorage for consistency, though it won't be read for theme switching
+  if (localStorage.getItem(kTheme) !== DEFAULT_THEME) {
+    localStorage.setItem(kTheme, DEFAULT_THEME);
   }
-
-  logStore.logSystem(`Theme changed to ${newTheme} mode`);
 }

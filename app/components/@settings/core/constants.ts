@@ -1,88 +1,69 @@
 import type { TabType } from './types';
 
+// Updated to reflect the new 12-card system + 2 new IDs using @iconify format
 export const TAB_ICONS: Record<TabType, string> = {
-  profile: 'i-ph:user-circle-fill',
-  settings: 'i-ph:gear-six-fill',
-  notifications: 'i-ph:bell-fill',
-  features: 'i-ph:star-fill',
-  data: 'i-ph:database-fill',
-  'cloud-providers': 'i-ph:cloud-fill',
-  'local-providers': 'i-ph:desktop-fill',
-  'service-status': 'i-ph:activity-bold',
-  connection: 'i-ph:wifi-high-fill',
-  debug: 'i-ph:bug-fill',
-  'event-logs': 'i-ph:list-bullets-fill',
-  update: 'i-ph:arrow-clockwise-fill',
-  'task-manager': 'i-ph:chart-line-fill',
-  'tab-management': 'i-ph:squares-four-fill',
+  'api-config': 'ph:code-block-fill',      // User confirmed
+  'github-integration': 'mdi:github',            // User specified
+  'supabase-connection': 'ph:database-fill',   // Fallback for simple-icons:supabase as it's not installed
+  'service-status': 'mdi:api',                 // For "API Status" (using mdi:api)
+  'event-logs': 'mdi:file-document-outline', // For "Logs"
+  connection: 'mdi:code-braces-box',         // For "Variables"
+  profile: 'lucide:user-cog',                // For "Profile Settings"
+  settings: 'lucide:settings',                 // User confirmed
+  'tab-management': 'lucide:layout-dashboard', // For "Brain Look"
+  'cloud-providers': 'mdi:brain',              // For "Neural Bridge"
+  'task-manager': 'mdi:cpu-64-bit',            // For "Resource Pulse"
+  debug: 'lucide:activity-square',           // For "Diagnostics Hub"
 };
 
 export const TAB_LABELS: Record<TabType, string> = {
-  profile: 'Profile',
+  'api-config': 'API Configuration',
+  'github-integration': 'GitHub Integration',
+  'supabase-connection': 'Supabase Connection',
+  'service-status': 'API Status',
+  'event-logs': 'Logs',
+  connection: 'Variables',
+  profile: 'Profile Settings',
   settings: 'Settings',
-  notifications: 'Notifications',
-  features: 'Features',
-  data: 'Data Management',
-  'cloud-providers': 'Cloud Providers',
-  'local-providers': 'Local Providers',
-  'service-status': 'Service Status',
-  connection: 'Connection',
-  debug: 'Debug',
-  'event-logs': 'Event Logs',
-  update: 'Updates',
-  'task-manager': 'Task Manager',
-  'tab-management': 'Tab Management',
+  'tab-management': 'Brain Look',
+  'cloud-providers': 'Neural Bridge',
+  'task-manager': 'Resource Pulse',
+  debug: 'Diagnostics Hub',
 };
 
 export const TAB_DESCRIPTIONS: Record<TabType, string> = {
+  'api-config': 'Configure AI providers, models, and API keys',
+  'github-integration': 'Connect & manage your GitHub repositories',
+  'supabase-connection': 'Link & configure your Supabase projects',
+  'service-status': 'Monitor cloud LLM and API service status',
+  'event-logs': 'View system events and application logs',
+  connection: 'Manage environment variables and connections',
   profile: 'Manage your profile and account settings',
   settings: 'Configure application preferences',
-  notifications: 'View and manage your notifications',
-  features: 'Explore new and upcoming features',
-  data: 'Manage your data and storage',
-  'cloud-providers': 'Configure cloud AI providers and models',
-  'local-providers': 'Configure local AI providers and models',
-  'service-status': 'Monitor cloud LLM service status',
-  connection: 'Check connection status and settings',
-  debug: 'Debug tools and system information',
-  'event-logs': 'View system events and logs',
-  update: 'Check for updates and release notes',
-  'task-manager': 'Monitor system resources and processes',
-  'tab-management': 'Configure visible tabs and their order',
+  'tab-management': 'Customize the look and feel of your Brain',
+  'cloud-providers': 'Bridge to various neural networks & cloud services',
+  'task-manager': 'Monitor system resources and active processes',
+  debug: 'Access diagnostic tools and system information',
 };
 
-export const DEFAULT_TAB_CONFIG = [
-  // User Window Tabs (Always visible by default)
-  { id: 'features', visible: true, window: 'user' as const, order: 0 },
-  { id: 'data', visible: true, window: 'user' as const, order: 1 },
-  { id: 'cloud-providers', visible: true, window: 'user' as const, order: 2 },
-  { id: 'local-providers', visible: true, window: 'user' as const, order: 3 },
-  { id: 'connection', visible: true, window: 'user' as const, order: 4 },
-  { id: 'notifications', visible: true, window: 'user' as const, order: 5 },
-  { id: 'event-logs', visible: true, window: 'user' as const, order: 6 },
-
-  // User Window Tabs (In dropdown, initially hidden)
-  { id: 'profile', visible: false, window: 'user' as const, order: 7 },
-  { id: 'settings', visible: false, window: 'user' as const, order: 8 },
-  { id: 'task-manager', visible: false, window: 'user' as const, order: 9 },
-  { id: 'service-status', visible: false, window: 'user' as const, order: 10 },
-
-  // User Window Tabs (Hidden, controlled by TaskManagerTab)
-  { id: 'debug', visible: false, window: 'user' as const, order: 11 },
-  { id: 'update', visible: false, window: 'user' as const, order: 12 },
-
-  // Developer Window Tabs (All visible by default)
-  { id: 'features', visible: true, window: 'developer' as const, order: 0 },
-  { id: 'data', visible: true, window: 'developer' as const, order: 1 },
-  { id: 'cloud-providers', visible: true, window: 'developer' as const, order: 2 },
-  { id: 'local-providers', visible: true, window: 'developer' as const, order: 3 },
-  { id: 'connection', visible: true, window: 'developer' as const, order: 4 },
-  { id: 'notifications', visible: true, window: 'developer' as const, order: 5 },
-  { id: 'event-logs', visible: true, window: 'developer' as const, order: 6 },
-  { id: 'profile', visible: true, window: 'developer' as const, order: 7 },
-  { id: 'settings', visible: true, window: 'developer' as const, order: 8 },
-  { id: 'task-manager', visible: true, window: 'developer' as const, order: 9 },
-  { id: 'service-status', visible: true, window: 'developer' as const, order: 10 },
-  { id: 'debug', visible: true, window: 'developer' as const, order: 11 },
-  { id: 'update', visible: true, window: 'developer' as const, order: 12 },
+// New DEFAULT_TAB_CONFIG with 12 cards in specified order for the new modal
+// Assuming all are 'user' window for now as the new modal doesn't differentiate user/dev for tab visibility.
+// All are marked visible: true as they are directly in the grid.
+export const DEFAULT_TAB_CONFIG: { id: TabType; visible: boolean; window: 'user'; order: number }[] = [
+  // Row 1
+  { id: 'api-config', visible: true, window: 'user' as const, order: 0 },
+  { id: 'github-integration', visible: true, window: 'user' as const, order: 1 },
+  { id: 'supabase-connection', visible: true, window: 'user' as const, order: 2 },
+  // Row 2
+  { id: 'service-status', visible: true, window: 'user' as const, order: 3 },
+  { id: 'event-logs', visible: true, window: 'user' as const, order: 4 },
+  { id: 'connection', visible: true, window: 'user' as const, order: 5 },
+  // Row 3
+  { id: 'profile', visible: true, window: 'user' as const, order: 6 },
+  { id: 'settings', visible: true, window: 'user' as const, order: 7 },
+  { id: 'tab-management', visible: true, window: 'user' as const, order: 8 },
+  // Row 4
+  { id: 'cloud-providers', visible: true, window: 'user' as const, order: 9 },
+  { id: 'task-manager', visible: true, window: 'user' as const, order: 10 },
+  { id: 'debug', visible: true, window: 'user' as const, order: 11 },
 ];

@@ -19,7 +19,7 @@ import {
 } from '~/lib/stores/settings';
 import { profileStore } from '~/lib/stores/profile';
 import type { TabType, TabVisibilityConfig, Profile } from './types';
-import { TAB_LABELS, DEFAULT_TAB_CONFIG } from './constants';
+import { TAB_LABELS, DEFAULT_TAB_CONFIG, TAB_DESCRIPTIONS } from './constants'; // Import TAB_DESCRIPTIONS
 import { DialogTitle } from '~/components/ui/Dialog';
 import { AvatarDropdown } from './AvatarDropdown';
 import BackgroundRays from '~/components/ui/BackgroundRays';
@@ -38,6 +38,7 @@ import CloudProvidersTab from '~/components/@settings/tabs/providers/cloud/Cloud
 import ServiceStatusTab from '~/components/@settings/tabs/providers/status/ServiceStatusTab';
 import LocalProvidersTab from '~/components/@settings/tabs/providers/local/LocalProvidersTab';
 import TaskManagerTab from '~/components/@settings/tabs/task-manager/TaskManagerTab';
+import ApiConfigView from '~/components/@settings/tabs/api-config/ApiConfigView'; // Added import
 
 interface ControlPanelProps {
   open: boolean;
@@ -63,28 +64,15 @@ interface AnimatedSwitchProps {
   checked: boolean;
   onCheckedChange: (checked: boolean) => void;
   id: string;
-  label: string;
+  label: string; // Restored missing label property
 }
 
-const TAB_DESCRIPTIONS: Record<TabType, string> = {
-  profile: 'Manage your profile and account settings',
-  settings: 'Configure application preferences',
-  notifications: 'View and manage your notifications',
-  features: 'Explore new and upcoming features',
-  data: 'Manage your data and storage',
-  'cloud-providers': 'Configure cloud AI providers and models',
-  'local-providers': 'Configure local AI providers and models',
-  'service-status': 'Monitor cloud LLM service status',
-  connection: 'Check connection status and settings',
-  debug: 'Debug tools and system information',
-  'event-logs': 'View system events and logs',
-  update: 'Check for updates and release notes',
-  'task-manager': 'Monitor system resources and processes',
-  'tab-management': 'Configure visible tabs and their order',
-};
+// Removed local TAB_DESCRIPTIONS, will use imported one from constants.ts
 
-// Beta status for experimental features
-const BETA_TABS = new Set<TabType>(['task-manager', 'service-status', 'update', 'local-providers']);
+// Beta status for experimental features - Updated to reflect new TabTypes
+// Assuming 'task-manager' (Resource Pulse) and 'service-status' (API Status) might still be beta.
+// 'update' and 'local-providers' were removed from the 12-card layout.
+const BETA_TABS = new Set<TabType>(['task-manager', 'service-status']);
 
 const BetaLabel = () => (
   <div className="absolute top-2 right-2 px-1.5 py-0.5 rounded-full bg-purple-500/10 dark:bg-purple-500/20">
@@ -228,9 +216,9 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
           return false;
         }
 
-        if (tab.id === 'notifications' && notificationsDisabled) {
-          return false;
-        }
+        // if (tab.id === 'notifications' && notificationsDisabled) { // 'notifications' removed from TabType
+        //   return false;
+        // }
 
         return tab.visible && tab.window === 'user';
       })
@@ -309,28 +297,30 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
     }
 
     switch (tabId) {
+      case 'api-config': // Added case for new tab
+        return <ApiConfigView />;
       case 'profile':
         return <ProfileTab />;
       case 'settings':
         return <SettingsTab />;
-      case 'notifications':
-        return <NotificationsTab />;
-      case 'features':
-        return <FeaturesTab />;
-      case 'data':
-        return <DataTab />;
+      // case 'notifications': // Removed
+      //   return <NotificationsTab />;
+      // case 'features': // Removed
+      //   return <FeaturesTab />;
+      // case 'data': // Removed
+      //   return <DataTab />;
       case 'cloud-providers':
         return <CloudProvidersTab />;
-      case 'local-providers':
-        return <LocalProvidersTab />;
+      // case 'local-providers': // Removed
+      //   return <LocalProvidersTab />;
       case 'connection':
         return <ConnectionsTab />;
       case 'debug':
         return <DebugTab />;
       case 'event-logs':
         return <EventLogsTab />;
-      case 'update':
-        return <UpdateTab />;
+      // case 'update': // Removed
+      //   return <UpdateTab />;
       case 'task-manager':
         return <TaskManagerTab />;
       case 'service-status':
@@ -342,12 +332,12 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
   const getTabUpdateStatus = (tabId: TabType): boolean => {
     switch (tabId) {
-      case 'update':
-        return hasUpdate;
-      case 'features':
-        return hasNewFeatures;
-      case 'notifications':
-        return hasUnreadNotifications;
+      // case 'update': // Removed
+      //   return hasUpdate;
+      // case 'features': // Removed
+      //   return hasNewFeatures;
+      // case 'notifications': // Removed
+      //   return hasUnreadNotifications;
       case 'connection':
         return hasConnectionIssues;
       case 'debug':
@@ -359,12 +349,12 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
   const getStatusMessage = (tabId: TabType): string => {
     switch (tabId) {
-      case 'update':
-        return `New update available (v${currentVersion})`;
-      case 'features':
-        return `${unviewedFeatures.length} new feature${unviewedFeatures.length === 1 ? '' : 's'} to explore`;
-      case 'notifications':
-        return `${unreadNotifications.length} unread notification${unreadNotifications.length === 1 ? '' : 's'}`;
+      // case 'update': // Removed
+      //   return `New update available (v${currentVersion})`;
+      // case 'features': // Removed
+      //   return `${unviewedFeatures.length} new feature${unviewedFeatures.length === 1 ? '' : 's'} to explore`;
+      // case 'notifications': // Removed
+      //   return `${unreadNotifications.length} unread notification${unreadNotifications.length === 1 ? '' : 's'}`;
       case 'connection':
         return currentIssue === 'disconnected'
           ? 'Connection lost'
@@ -389,15 +379,15 @@ export const ControlPanel = ({ open, onClose }: ControlPanelProps) => {
 
     // Acknowledge notifications based on tab
     switch (tabId) {
-      case 'update':
-        acknowledgeUpdate();
-        break;
-      case 'features':
-        acknowledgeAllFeatures();
-        break;
-      case 'notifications':
-        markAllAsRead();
-        break;
+      // case 'update': // Removed
+      //   acknowledgeUpdate();
+      //   break;
+      // case 'features': // Removed
+      //   acknowledgeAllFeatures();
+      //   break;
+      // case 'notifications': // Removed
+      //   markAllAsRead();
+      //   break;
       case 'connection':
         acknowledgeIssue();
         break;

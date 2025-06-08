@@ -1,49 +1,69 @@
-.animated {
-  animation-fill-mode: both;
-  animation-duration: var(--animate-duration, 0.2s);
-  animation-timing-function: cubic-bezier(0, 0, 0.2, 1);
-
-  &.fadeInRight {
-    animation-name: fadeInRight;
-  }
-
-  &.fadeOutRight {
-    animation-name: fadeOutRight;
-  }
+/* Existing animations */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
-@keyframes fadeInRight {
+.animation-delay-200 {
+  animation-delay: 0.2s;
+}
+
+@keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translate3d(100%, 0, 0);
+    transform: translateY(10px);
   }
-
   to {
     opacity: 1;
-    transform: translate3d(0, 0, 0);
+    transform: translateY(0);
   }
 }
 
-@keyframes fadeOutRight {
-  from {
-    opacity: 1;
-  }
-
-  to {
-    opacity: 0;
-    transform: translate3d(100%, 0, 0);
-  }
+/* New animated glowing border */
+.animated-glowing-border {
+  border-radius: 1rem; /* from rounded-2xl */
+  border: 2px solid transparent; /* Crucial for the effect */
+  
+  /* Glassmorphic background for the content area (padding-box) */
+  /* This will be layered ON TOP of the animated border gradient */
+  background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), 
+                    linear-gradient(90deg, #00E0FF, transparent 50%, #00E0FF);
+  background-origin: border-box;
+  background-clip: padding-box, border-box; /* padding-box for first bg, border-box for second */
+  
+  background-size: auto, 300% auto; /* First bg normal, second for animation */
+  animation: flowBorder 6s linear infinite;
 }
 
-.dropdown-animation {
-  opacity: 0;
-  animation: fadeMoveDown 0.15s forwards;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+@keyframes flowBorder {
+  0% { background-position: 100% center, 150% center; } /* Start gradient off-screen */
+  100% { background-position: 100% center, -50% center; } /* Move gradient across */
 }
 
-@keyframes fadeMoveDown {
-  to {
-    opacity: 1;
-    transform: translateY(6px);
-  }
+/* Subtle wave/glow animation for chat message area */
+@keyframes subtleLuminosityWave {
+  0% { transform: translate(-50%, -50%) scale(1); opacity: 0.015; }
+  25% { transform: translate(-40%, -60%) scale(1.2); opacity: 0.025; }
+  50% { transform: translate(-50%, -50%) scale(1); opacity: 0.02; }
+  75% { transform: translate(-60%, -40%) scale(1.1); opacity: 0.03; }
+  100% { transform: translate(-50%, -50%) scale(1); opacity: 0.015; }
+}
+
+/* Class to apply the ::before pseudo-element for the wave animation */
+/* The element this is applied to should have position: relative and overflow: hidden */
+.animate-subtle-luminosity-wave::before {
+  content: "";
+  position: absolute;
+  left: 50%; 
+  top: 50%;
+  width: 200%; /* Large size for the gradient sphere */
+  height: 200%;
+  transform-origin: center center; /* Ensure scaling and translation are centered */
+  background-image: radial-gradient(ellipse at center, 
+    rgba(200, 200, 220, 0.5), /* Faint cool white glow, slightly more visible */
+    transparent 60% /* Fall off to transparent */
+  );
+  opacity: 0.015; /* Initial very low opacity, animation will vary this */
+  animation: subtleLuminosityWave 45s ease-in-out infinite;
+  pointer-events: none;
+  z-index: 0; /* Ensure it's behind content if applied to a container */
 }

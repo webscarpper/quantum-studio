@@ -1,5 +1,6 @@
 import React from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
+import { Icon } from '@iconify/react'; // Import Icon component
 import { classNames } from '~/utils/classNames';
 import { PROVIDER_LIST } from '~/utils/constants';
 import { ModelSelector } from '~/components/chat/ModelSelector';
@@ -20,14 +21,15 @@ import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 
 interface ChatBoxProps {
-  isModelSettingsCollapsed: boolean;
-  setIsModelSettingsCollapsed: (collapsed: boolean) => void;
-  provider: any;
-  providerList: any[];
-  modelList: any[];
-  apiKeys: Record<string, string>;
-  isModelLoading: string | undefined;
-  onApiKeysChange: (providerName: string, apiKey: string) => void;
+  // Removed props related to inline model/API settings
+  // isModelSettingsCollapsed: boolean;
+  // setIsModelSettingsCollapsed: (collapsed: boolean) => void;
+  // provider: any; // Will be sourced from store if needed by other parts, or not needed by ChatBox
+  providerList: any[]; // Kept for SendButton, might be refactored later
+  // modelList: any[];
+  // apiKeys: Record<string, string>;
+  // isModelLoading: string | undefined;
+  // onApiKeysChange: (providerName: string, apiKey: string) => void;
   uploadedFiles: File[];
   imageDataList: string[];
   textareaRef: React.RefObject<HTMLTextAreaElement> | undefined;
@@ -45,9 +47,9 @@ interface ChatBoxProps {
   qrModalOpen: boolean;
   setQrModalOpen: (open: boolean) => void;
   handleFileUpload: () => void;
-  setProvider?: ((provider: ProviderInfo) => void) | undefined;
-  model?: string | undefined;
-  setModel?: ((model: string) => void) | undefined;
+  // setProvider?: ((provider: ProviderInfo) => void) | undefined; // Removed
+  // model?: string | undefined; // Removed
+  // setModel?: ((model: string) => void) | undefined; // Removed
   setUploadedFiles?: ((files: File[]) => void) | undefined;
   setImageDataList?: ((dataList: string[]) => void) | undefined;
   handleInputChange?: ((event: React.ChangeEvent<HTMLTextAreaElement>) => void) | undefined;
@@ -60,14 +62,21 @@ interface ChatBoxProps {
   setDesignScheme?: (scheme: DesignScheme) => void;
   selectedElement?: ElementInfo | null;
   setSelectedElement?: ((element: ElementInfo | null) => void) | undefined;
+  isLandingMode?: boolean; // Added prop to control width styling
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
+  const { isLandingMode, ...restProps } = props; // Destructure isLandingMode
+
   return (
     <div
       className={classNames(
-        'relative bg-bolt-elements-background-depth-2 backdrop-blur p-3 rounded-lg border border-bolt-elements-borderColor relative w-full max-w-chat mx-auto z-prompt',
-
+        'relative w-full z-prompt animated-glowing-border', // Base classes, new border class
+        'backdrop-blur-[12px] rounded-2xl', // Keep backdrop-blur and rounded-2xl
+        'border-2 border-transparent', // Added for the CSS border technique
+        'py-5 px-4', // New padding (1.25rem T/B, 1rem L/R)
+        // bg-[rgba(0,0,0,0.4)] is now handled by the .animated-glowing-border class in animations.scss
+        { 'max-w-chat mx-auto': !isLandingMode }, // Conditional width constraint
         /*
          * {
          *   'sticky bottom-2': chatStarted,
@@ -101,36 +110,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
         <rect className={classNames(styles.PromptEffectLine)} pathLength="100" strokeLinecap="round"></rect>
         <rect className={classNames(styles.PromptShine)} x="48" y="24" width="70" height="1"></rect>
       </svg>
-      <div>
-        <ClientOnly>
-          {() => (
-            <div className={props.isModelSettingsCollapsed ? 'hidden' : ''}>
-              <ModelSelector
-                key={props.provider?.name + ':' + props.modelList.length}
-                model={props.model}
-                setModel={props.setModel}
-                modelList={props.modelList}
-                provider={props.provider}
-                setProvider={props.setProvider}
-                providerList={props.providerList || (PROVIDER_LIST as ProviderInfo[])}
-                apiKeys={props.apiKeys}
-                modelLoading={props.isModelLoading}
-              />
-              {(props.providerList || []).length > 0 &&
-                props.provider &&
-                (!LOCAL_PROVIDERS.includes(props.provider.name) || 'OpenAILike') && (
-                  <APIKeyManager
-                    provider={props.provider}
-                    apiKey={props.apiKeys[props.provider.name] || ''}
-                    setApiKey={(key) => {
-                      props.onApiKeysChange(props.provider.name, key);
-                    }}
-                  />
-                )}
-            </div>
-          )}
-        </ClientOnly>
-      </div>
+      {/* Removed inline ModelSelector and APIKeyManager */}
       <FilePreview
         files={props.uploadedFiles}
         imageDataList={props.imageDataList}
@@ -165,32 +145,20 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           </button>
         </div>
       )}
-      <div
-        className={classNames('relative shadow-xs border border-bolt-elements-borderColor backdrop-blur rounded-lg')}
-      >
+      {/* Simplified inner container for textarea and button bar */}
+      <div className="relative flex flex-col"> 
         <textarea
           ref={props.textareaRef}
           className={classNames(
-            'w-full pl-4 pt-4 pr-16 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm',
-            'transition-all duration-200',
-            'hover:border-bolt-elements-focus',
+            'w-full pr-12 pt-0 pb-2 outline-none resize-none text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent text-sm', // Adjusted padding
+            // Removed hover:border-bolt-elements-focus as the main container has the animated border
           )}
-          onDragEnter={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.border = '2px solid #1488fc';
-          }}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.border = '2px solid #1488fc';
-          }}
-          onDragLeave={(e) => {
-            e.preventDefault();
-            e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-          }}
+          onDragEnter={(e) => { e.preventDefault(); }}
+          onDragOver={(e) => { e.preventDefault(); }}
+          onDragLeave={(e) => { e.preventDefault(); }}
           onDrop={(e) => {
             e.preventDefault();
-            e.currentTarget.style.border = '1px solid var(--bolt-elements-borderColor)';
-
+            // Original onDrop file handling logic:
             const files = Array.from(e.dataTransfer.files);
             files.forEach((file) => {
               if (file.type.startsWith('image/')) {
@@ -235,7 +203,7 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             minHeight: props.TEXTAREA_MIN_HEIGHT,
             maxHeight: props.TEXTAREA_MAX_HEIGHT,
           }}
-          placeholder={props.chatMode === 'build' ? 'How can Bolt help you today?' : 'What would you like to discuss?'}
+          placeholder={props.chatMode === 'build' ? 'How can Sin help you today?' : 'What would you like to discuss?'}
           translate="no"
         />
         <ClientOnly>
@@ -257,76 +225,58 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
             />
           )}
         </ClientOnly>
-        <div className="flex justify-between items-center text-sm p-4 pt-2">
-          <div className="flex gap-1 items-center">
-            <ColorSchemeDialog designScheme={props.designScheme} setDesignScheme={props.setDesignScheme} />
-            <IconButton title="Upload file" className="transition-all" onClick={() => props.handleFileUpload()}>
-              <div className="i-ph:paperclip text-xl"></div>
+        {/* Updated Button Layout Area */}
+        <div className="flex justify-between items-center text-sm px-1 pt-3"> {/* Adjusted padding: px-1 for internal, pt-3 from textarea */}
+          {/* Left Group */}
+          <div className="flex gap-3 items-center"> {/* gap-3 for 0.75rem */}
+            <IconButton title="Upload file" className="transition-all hover:text-bolt-accent-primary" onClick={() => props.handleFileUpload()}>
+              <Icon icon="ph:paperclip" className="text-xl" />
             </IconButton>
             <IconButton
               title="Enhance prompt"
               disabled={props.input.length === 0 || props.enhancingPrompt}
-              className={classNames('transition-all', props.enhancingPrompt ? 'opacity-100' : '')}
+              className={classNames('transition-all hover:text-bolt-accent-primary', props.enhancingPrompt ? 'opacity-100' : '')}
               onClick={() => {
                 props.enhancePrompt?.();
                 toast.success('Prompt enhanced!');
               }}
             >
               {props.enhancingPrompt ? (
-                <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl animate-spin"></div>
+                <Icon icon="svg-spinners:90-ring-with-bg" className="text-bolt-elements-loader-progress text-xl animate-spin" />
               ) : (
-                <div className="i-bolt:stars text-xl"></div>
+                <Icon icon="ph:stars-bold" className="text-xl" /> 
               )}
             </IconButton>
+            {/* ColorSchemeDialog removed from here */}
+            {/* Discuss button removed from here, as it's chatStarted dependent and not in the new minimalist layout */}
+          </div>
 
+          {/* Center: "Shift + Return" hint */}
+          <div className="flex-1 text-center"> {/* flex-1 to take up space and center the hint */}
+            {props.input.length > 3 ? (
+              <div className="text-xs text-bolt-elements-textTertiary">
+                Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-3">Shift</kbd> +{' '}
+                <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-3">Return</kbd> a new line
+              </div>
+            ) : null}
+          </div>
+          
+          {/* Right Group */}
+          <div className="flex gap-3 items-center">
             <SpeechRecognitionButton
               isListening={props.isListening}
               onStart={props.startListening}
               onStop={props.stopListening}
               disabled={props.isStreaming}
+              // className="hover:text-bolt-accent-primary" // Removed className, SpeechRecognitionButton might not support it directly
             />
-            {props.chatStarted && (
-              <IconButton
-                title="Discuss"
-                className={classNames(
-                  'transition-all flex items-center gap-1 px-1.5',
-                  props.chatMode === 'discuss'
-                    ? '!bg-bolt-elements-item-backgroundAccent !text-bolt-elements-item-contentAccent'
-                    : 'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault',
-                )}
-                onClick={() => {
-                  props.setChatMode?.(props.chatMode === 'discuss' ? 'build' : 'discuss');
-                }}
-              >
-                <div className={`i-ph:chats text-xl`} />
-                {props.chatMode === 'discuss' ? <span>Discuss</span> : <span />}
-              </IconButton>
-            )}
-            <IconButton
-              title="Model Settings"
-              className={classNames('transition-all flex items-center gap-1', {
-                'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent':
-                  props.isModelSettingsCollapsed,
-                'bg-bolt-elements-item-backgroundDefault text-bolt-elements-item-contentDefault':
-                  !props.isModelSettingsCollapsed,
-              })}
-              onClick={() => props.setIsModelSettingsCollapsed(!props.isModelSettingsCollapsed)}
-              disabled={!props.providerList || props.providerList.length === 0}
-            >
-              <div className={`i-ph:caret-${props.isModelSettingsCollapsed ? 'right' : 'down'} text-lg`} />
-              {props.isModelSettingsCollapsed ? <span className="text-xs">{props.model}</span> : <span />}
-            </IconButton>
+            {/* SupabaseConnection component removed */}
+            {/* ExpoQrModal trigger removed from here, it's a modal not a button in this bar */}
           </div>
-          {props.input.length > 3 ? (
-            <div className="text-xs text-bolt-elements-textTertiary">
-              Use <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Shift</kbd> +{' '}
-              <kbd className="kdb px-1.5 py-0.5 rounded bg-bolt-elements-background-depth-2">Return</kbd> a new line
-            </div>
-          ) : null}
-          <SupabaseConnection />
-          <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />
         </div>
       </div>
+      {/* ExpoQrModal needs to be triggered from somewhere else if still needed */}
+      {props.qrModalOpen && <ExpoQrModal open={props.qrModalOpen} onClose={() => props.setQrModalOpen(false)} />}
     </div>
   );
 };

@@ -1,16 +1,16 @@
 import styles from './styles.module.scss';
+import { classNames } from '~/utils/classNames'; // For merging class names
 
-const BackgroundRays = () => {
+interface BackgroundRaysProps {
+  className?: string;
+}
+
+const BackgroundRays: React.FC<BackgroundRaysProps> = ({ className }) => {
   return (
-    <div className={`${styles.rayContainer} `}>
-      <div className={`${styles.lightRay} ${styles.ray1}`}></div>
-      <div className={`${styles.lightRay} ${styles.ray2}`}></div>
-      <div className={`${styles.lightRay} ${styles.ray3}`}></div>
-      <div className={`${styles.lightRay} ${styles.ray4}`}></div>
-      <div className={`${styles.lightRay} ${styles.ray5}`}></div>
-      <div className={`${styles.lightRay} ${styles.ray6}`}></div>
-      <div className={`${styles.lightRay} ${styles.ray7}`}></div>
-      <div className={`${styles.lightRay} ${styles.ray8}`}></div>
+    <div className={classNames(styles.rayContainer, className)}>
+      {/* Using two layers for the aurora effect */}
+      <div className={`${styles.auroraLayer} ${styles.auroraLayer1}`}></div>
+      <div className={`${styles.auroraLayer} ${styles.auroraLayer2}`}></div>
     </div>
   );
 };
