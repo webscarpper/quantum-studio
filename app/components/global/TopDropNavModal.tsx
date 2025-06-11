@@ -53,44 +53,7 @@ export const TopDropNavModal: React.FC = () => {
     };
   }, [isOpen, handleClose]);
 
-  // Effect for mousemove listener to trigger modal
-  useEffect(() => {
-    const triggerZoneHeight = 32; // User requested 0-32px range
-
-    const handleMouseMove = (event: MouseEvent) => {
-      if (event.clientY < triggerZoneHeight && event.clientY >= 0) {
-        if (!isTopDropModalOpen.get() && !recentlyClosedRef.current) {
-          if (openTimeoutRef.current) {
-            clearTimeout(openTimeoutRef.current);
-          }
-          openTimeoutRef.current = setTimeout(() => {
-            // Double check state before opening, in case it was opened by button click during timeout
-            if (!isTopDropModalOpen.get() && !recentlyClosedRef.current) {
-              openTopDropModal();
-            }
-          }, 200); // 200ms delay
-        }
-      } else {
-        if (openTimeoutRef.current) {
-          clearTimeout(openTimeoutRef.current);
-          openTimeoutRef.current = null;
-        }
-      }
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('mousemove', handleMouseMove);
-    }
-
-    return () => {
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('mousemove', handleMouseMove);
-      }
-      if (openTimeoutRef.current) {
-        clearTimeout(openTimeoutRef.current);
-      }
-    };
-  }, []); // Empty dependency array: run once on mount, cleanup on unmount
+  // Removed useEffect for mousemove listener to prevent automatic opening
 
   return (
     <AnimatePresence>
@@ -106,7 +69,7 @@ export const TopDropNavModal: React.FC = () => {
             transition={{ duration: 0.3 }}
           />
           <motion.div
-            className="fixed top-0 left-0 right-0 h-screen w-screen bg-transparent shadow-2xl z-[995] flex flex-col" // Modal panel background to transparent
+            className="fixed top-0 left-0 right-0 h-screen w-screen bg-black shadow-2xl z-[995] flex flex-col" // Changed to solid black background
             variants={modalVariants}
             initial="hidden"
             animate="visible"

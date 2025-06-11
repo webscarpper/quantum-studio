@@ -7,7 +7,7 @@ import BackgroundRays from '~/components/ui/BackgroundRays';
 import AnimatedSphere from '~/components/ui/AnimatedSphere';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Bolt' }, { name: 'description', content: 'Talk with Bolt, an AI assistant from StackBlitz' }];
+  return [{ title: 'SIN' }, { name: 'description', content: 'Talk with SIN, an AI assistant from Synthetic Intelligence Network' }];
 };
 
 export const loader = () => json({});

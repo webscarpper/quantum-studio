@@ -86,11 +86,8 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           statusText: 'Unauthorized',
         });
       }
-
-      throw new Response(null, {
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
+      logger.error('LLM call (stream) failed:', error);
+      return Response.json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : String(error) }, { status: 500 });
     }
   } else {
     try {
@@ -145,11 +142,8 @@ async function llmCallAction({ context, request }: ActionFunctionArgs) {
           statusText: 'Unauthorized',
         });
       }
-
-      throw new Response(null, {
-        status: 500,
-        statusText: 'Internal Server Error',
-      });
+      logger.error('LLM call (non-stream) failed:', error);
+      return Response.json({ error: 'Internal Server Error', message: error instanceof Error ? error.message : String(error) }, { status: 500 });
     }
   }
 }

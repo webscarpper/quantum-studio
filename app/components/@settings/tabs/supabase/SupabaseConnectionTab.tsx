@@ -1,27 +1,23 @@
 import React from 'react';
+import { SupabaseConnection } from '~/components/chat/SupabaseConnection'; // Import the component
 
 const SupabaseConnectionTab: React.FC = () => {
   return (
-    <div className="bg-black p-6 rounded-xl h-full text-gray-200 flex flex-col items-center justify-center text-center">
-      <div className="i-simple-icons:supabase text-6xl text-gray-400 mb-4" /> {/* Adjusted icon color */}
-      <h2 className="text-xl font-semibold text-gray-100 mb-2"> {/* Adjusted text color */}
-        Supabase Connection
+    // The tab content area has a black background and high-contrast text from parent styles.
+    // Provide a simple container. SupabaseConnection component will render its button which opens a dialog.
+    // The SupabaseConnection component itself is relatively positioned, so it should work fine here.
+    // We might want the SupabaseConnection UI to be directly visible rather than a button opening a dialog.
+    // For now, this will make the existing UI accessible.
+    <div className="p-6 h-full flex flex-col items-start"> 
+      {/* items-start to align the button to the top-left if it's small, or allow it to take full width if needed */}
+      <h2 className="text-xl font-semibold text-gray-100 mb-4">
+        Supabase Connection Management
       </h2>
-      <p className="text-gray-400 mb-4"> {/* Adjusted text color */}
-        Supabase setup placeholder.
+      <p className="text-gray-400 mb-6 text-sm">
+        Connect to your Supabase account to manage projects, link databases, and enable Supabase-specific features within your chat.
+        Click the button below to open the connection dialog.
       </p>
-      <div className="w-full max-w-md">
-        <label htmlFor="mock-api-key" className="block text-sm font-medium text-gray-400 mb-1"> {/* Adjusted text color */}
-          Linked Project ID (Mock)
-        </label>
-        <input
-          type="text"
-          id="mock-api-key"
-          readOnly
-          value="none"
-          className="w-full p-2 rounded bg-gray-900 border border-gray-700 text-gray-500 cursor-not-allowed" // Adjusted styles for dark bg
-        />
-      </div>
+      <SupabaseConnection />
     </div>
   );
 };

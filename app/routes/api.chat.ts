@@ -367,10 +367,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
         statusText: 'Unauthorized',
       });
     }
-
-    throw new Response(null, {
-      status: 500,
-      statusText: 'Internal Server Error',
-    });
+    logger.error('Chat action failed:', error);
+    return Response.json(
+      { error: 'Internal Server Error', message: error instanceof Error ? error.message : String(error) },
+      { status: 500 },
+    );
   }
 }

@@ -66,13 +66,7 @@ export function Chat() {
         />
       )}
       <ToastContainer
-        closeButton={({ closeToast }) => {
-          return (
-            <button className="Toastify__close-button" onClick={closeToast}>
-              <div className="i-ph:x text-lg" />
-            </button>
-          );
-        }}
+        // closeButton prop removed to use react-toastify's default close button
         icon={({ type }) => {
           switch (type) {
             case 'success': {
@@ -87,7 +81,7 @@ export function Chat() {
         position="bottom-right"
         pauseOnFocusLoss
         transition={toastAnimation}
-        autoClose={3000}
+        autoClose={5000} // Changed to 5 seconds
       />
     </>
   );
@@ -212,10 +206,42 @@ export const ChatImpl = memo(
       if (chatStarted) {
         return;
       }
-      await Promise.all([
-        animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
-        animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
-      ]);
+      const animations = [];
+      // Check if elements exist within the animation scope before animating
+      // animationScope is the ref passed to BaseChat, which should contain #intro
+      // #examples might not exist if ExamplePrompts component is not rendered
+      
+      // Attempt to select elements using the scope if possible, or document if global
+      // Assuming animationScope.current is the DOM element <BaseChat> is rendered into
+      if (animationScope.current) {
+        const examplesEl = animationScope.current.querySelector('#examples');
+        const introEl = animationScope.current.querySelector('#intro');
+
+        if (examplesEl) {
+          animations.push(animate(examplesEl, { opacity: 0, display: 'none' }, { duration: 0.1 }));
+        } else {
+          // logger.warn('#examples element not found for animation. It might have been removed.');
+        }
+
+        if (introEl) {
+          animations.push(animate(introEl, { opacity: 0 }, { duration: 0.2, ease: cubicEasingFn }));
+          // Note: animating 'flex: 1' with framer-motion's animate function might be tricky or not directly supported.
+          // Typically, flex properties are changed via direct style manipulation or class changes.
+          // For now, only animating opacity on #intro to ensure stability.
+          // If flex: 1 animation is crucial, it might need a different approach.
+        } else {
+          logger.warn('#intro element not found for animation.');
+        }
+      } else {
+        logger.warn('animationScope.current is not available in runAnimation.');
+        // Fallback or alternative selection if needed, though scoped animate is preferred
+        // animations.push(animate('#intro', { opacity: 0 }, { duration: 0.2, ease: cubicEasingFn }));
+      }
+
+      if (animations.length > 0) {
+        await Promise.all(animations);
+      }
+      
       chatStore.setKey('started', true);
       setChatStarted(true);
     };

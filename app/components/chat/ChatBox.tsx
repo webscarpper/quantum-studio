@@ -63,6 +63,8 @@ interface ChatBoxProps {
   selectedElement?: ElementInfo | null;
   setSelectedElement?: ((element: ElementInfo | null) => void) | undefined;
   isLandingMode?: boolean; // Added prop to control width styling
+  isApiKeyMissing?: boolean; // Added for API key check
+  apiKeyNotification?: string | null; // Added for API key notification message
 }
 
 export const ChatBox: React.FC<ChatBoxProps> = (props) => {
@@ -206,14 +208,21 @@ export const ChatBox: React.FC<ChatBoxProps> = (props) => {
           placeholder={props.chatMode === 'build' ? 'How can Sin help you today?' : 'What would you like to discuss?'}
           translate="no"
         />
+        {props.apiKeyNotification && (
+          <div className="text-xs text-red-500 pt-1 pb-2 text-center"> {/* Adjusted padding */}
+            {props.apiKeyNotification}
+          </div>
+        )}
         <ClientOnly>
           {() => (
             <SendButton
               show={props.input.length > 0 || props.isStreaming || props.uploadedFiles.length > 0}
               isStreaming={props.isStreaming}
-              disabled={!props.providerList || props.providerList.length === 0}
+              disabled={props.isApiKeyMissing || (!props.providerList || props.providerList.length === 0) || (!props.input.trim() && props.uploadedFiles.length === 0)}
               onClick={(event) => {
-                if (props.isStreaming) {
+                // If API key is missing, BaseChat's handleSendMessage will show the notification.
+                // SendButton should be disabled, but onClick still calls handleSendMessage which has the primary check.
+                if (props.isStreaming && !props.isApiKeyMissing) { 
                   props.handleStop?.();
                   return;
                 }

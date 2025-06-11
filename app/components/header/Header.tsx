@@ -17,10 +17,10 @@ export function Header() {
       })}
     >
       {/* Logo - Old trigger button removed from here */}
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary mt-[40px]"> {/* Moved logo container down */}
+      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary mt-[25px]"> {/* Adjusted top margin: 40px - 15px = 25px */}
         <a href="/" className="text-2xl font-semibold text-accent flex items-center"> {/* Reverted <a> tag font size */}
           <img src="/custom-logo.png" alt="Custom Logo" className="w-[90px] inline-block" /> {/* Reverted logo size */}
-          <span className="ml-2 text-lg text-white font-bold">Synthetic Intelligence Network</span> {/* Text smaller, reduced margin */}
+          <span className="ml-2 text-sm text-white font-bold transform translate-x-[-45px] translate-y-[17px]">ynthetic Intelligence Network</span> {/* Text moved another 5px right from previous -50px */}
         </a>
       </div>
 
@@ -42,7 +42,7 @@ export function Header() {
         )}
         <button
           onClick={toggleTopDropModal}
-          className="px-6 py-3 rounded-lg text-lg font-semibold transition-all duration-200 ease-in-out hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00D3A9] transform translate-x-[-40px] translate-y-[40px]" // Enlarged, moved
+          className="px-6 py-3 rounded-lg text-lg font-semibold transition-all duration-200 ease-in-out hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#00D3A9] transform translate-x-[-5px] translate-y-[15px]" // Adjusted position
           style={{
             backgroundColor: '#00D3A9', // Sphere's teal color
             color: '#FFFFFF', // White text for contrast

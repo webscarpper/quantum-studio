@@ -32,6 +32,7 @@ import { useStore } from '@nanostores/react';
 import { StickToBottom, useStickToBottomContext } from '~/lib/hooks';
 import { ChatBox } from './ChatBox';
 import AnimatedSphere from '~/components/ui/AnimatedSphere'; // Import AnimatedSphere
+import { LOCAL_PROVIDERS } from '~/lib/stores/settings'; // Import LOCAL_PROVIDERS
 import type { DesignScheme } from '~/types/design-scheme';
 import type { ElementInfo } from '~/components/workbench/Inspector';
 
@@ -136,11 +137,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
     const [recognition, setRecognition] = useState<SpeechRecognition | null>(null);
     const [transcript, setTranscript] = useState('');
     const [isModelLoading, setIsModelLoading] = useState<string | undefined>('all');
-    const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
-    const expoUrl = useStore(expoUrlAtom);
-    const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [progressAnnotations, setProgressAnnotations] = useState<ProgressAnnotation[]>([]);
+  const expoUrl = useStore(expoUrlAtom);
+  const [qrModalOpen, setQrModalOpen] = useState(false);
+  const [apiKeyNotification, setApiKeyNotification] = useState<string | null>(null); // State for API key notification
 
-    useEffect(() => {
+  useEffect(() => {
       if (expoUrl) {
         setQrModalOpen(true);
       }
@@ -261,12 +263,23 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
-    const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
-      if (sendMessage) {
-        sendMessage(event, messageInput);
-        setSelectedElement?.(null);
+  const handleSendMessage = (event: React.UIEvent, messageInput?: string) => {
+    const currentProviderName = provider?.name; // Changed from provider?.id
+    const providerRequiresApiKey = provider && !LOCAL_PROVIDERS.some(lpId => lpId === provider.name); // Changed from provider.id
+    const isApiKeyActuallyMissing = providerRequiresApiKey && (!currentProviderName || !apiKeys[currentProviderName]); // Changed from currentProviderId
 
-        if (recognition) {
+    if (isApiKeyActuallyMissing) {
+      setApiKeyNotification("Please set your API key in Quantum Brain (Settings > API Configuration) to send prompts.");
+      // Consider opening the modal: import { openTopDropModal } from '~/lib/stores/topDropModalStore'; openTopDropModal();
+      return; 
+    }
+    setApiKeyNotification(null); // Clear notification if key is present or not required
+
+    if (sendMessage) {
+      sendMessage(event, messageInput);
+      setSelectedElement?.(null);
+
+      if (recognition) {
           recognition.abort(); // Stop current recognition
           setTranscript(''); // Clear transcript
           setIsListening(false);
@@ -334,28 +347,34 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       }
     };
 
-    const baseChat = (
-      <div
-        ref={ref}
-        className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
+  const currentProviderName = provider?.name; // Changed from provider?.id
+  const providerRequiresApiKey = provider && !LOCAL_PROVIDERS.some(lpId => lpId === provider.name); // Changed from provider.id
+  const isApiKeyActuallyMissing = providerRequiresApiKey && (!currentProviderName || !apiKeys[currentProviderName]); // Changed from currentProviderId
+
+  const baseChat = (
+    <div
+      ref={ref}
+      className={classNames(styles.BaseChat, 'relative flex h-full w-full overflow-hidden')}
         data-chat-visible={showChat}
       >
         {/* <ClientOnly>{() => <Menu />}</ClientOnly> Removed old sidebar menu */}
-        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full">
-          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full relative')}> {/* Added relative for absolute positioning context */}
+        <div className="flex flex-col lg:flex-row overflow-y-auto w-full h-full"> 
+          {/* Chat UI is now on the left (original position) - Reverting to original classes */}
+          <div className={classNames(styles.Chat, 'flex flex-col flex-grow lg:min-w-[var(--chat-min-width)] h-full relative')}> {/* Removed items-center */}
             {!chatStarted && (
               <>
-                <div id="intro" className="mt-20 max-w-2xl mx-auto text-center px-4 lg:px-0 relative z-10"> {/* Ensure intro text is above sphere */}
-                  <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in">
+                {/* Kept w-full on intro div as it might help, but mx-auto and text-center are key */}
+                <div id="intro" className="mt-20 w-full max-w-2xl mx-auto text-center px-4 lg:px-0 relative z-10"> 
+                  <h1 className="text-3xl lg:text-6xl font-bold text-bolt-elements-textPrimary mb-4 animate-fade-in text-center">
                     Command Intelligence. Create Universes.
                   </h1>
-                  <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200">
+                  <p className="text-md lg:text-xl mb-8 text-bolt-elements-textSecondary animate-fade-in animation-delay-200 text-center">
                     Quantum Studio gives you god-mode access to build AI systems, tools, and agents—without touching code.
                   </p>
                 </div>
                 {/* AnimatedSphere is now fixed position and self-centering. Render it conditionally. */}
                 {/* Pass a z-index class to ensure it's in the background. */}
-                <AnimatedSphere size={2000} className="z-[-1]" /> {/* Further increased size for "2.5x bigger" */}
+                <AnimatedSphere size={2000} className="z-[-1]" />
               </>
             )}
             <StickToBottom
@@ -468,6 +487,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   selectedElement={selectedElement}
                   setSelectedElement={setSelectedElement}
                   isLandingMode={!chatStarted} // Pass isLandingMode prop
+                  isApiKeyMissing={isApiKeyActuallyMissing} // Pass API key status
+                  apiKeyNotification={apiKeyNotification} // Pass notification message
                 />
               </div>
               </StickToBottom>
@@ -505,6 +526,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               />
             )}
           </ClientOnly>
+          {/* The duplicated ClientOnly block for Workbench below is removed. 
+             The Workbench should only be rendered once as the second child of the flex container. */}
         </div>
       </div>
     );

@@ -169,13 +169,13 @@ export default function DeployChatAlert({ alert, clearAlert, postMessage }: Depl
                       'focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bolt-elements-button-danger-background',
                       'text-bolt-elements-button-primary-text',
                       'flex items-center gap-1.5',
-                    )}
-                  >
-                    <div className="i-ph:chat-circle-duotone"></div>
-                    Ask Bolt
-                  </button>
-                )}
-                <button
+                  )}
+                >
+                  <div className="i-ph:chat-circle-duotone"></div>
+                  Ask SIN
+                </button>
+              )}
+              <button
                   onClick={clearAlert}
                   className={classNames(
                     `px-2 py-1.5 rounded-md text-sm font-medium`,

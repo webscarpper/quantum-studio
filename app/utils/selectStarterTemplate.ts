@@ -65,124 +65,158 @@ const templates: Template[] = STARTER_TEMPLATES.filter((t) => !t.name.includes('
 
 const parseSelectedTemplate = (llmOutput: string): { template: string; title: string } | null => {
   try {
-    // Extract content between <templateName> tags
     const templateNameMatch = llmOutput.match(/<templateName>(.*?)<\/templateName>/);
     const titleMatch = llmOutput.match(/<title>(.*?)<\/title>/);
 
     if (!templateNameMatch) {
+      console.warn('Could not parse templateName from LLM output:', llmOutput);
       return null;
     }
 
     return { template: templateNameMatch[1].trim(), title: titleMatch?.[1].trim() || 'Untitled Project' };
   } catch (error) {
-    console.error('Error parsing template selection:', error);
+    console.error('Error parsing template selection XML:', error);
     return null;
   }
 };
 
-export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }) => {
+export const selectStarterTemplate = async (options: { message: string; model: string; provider: ProviderInfo }): Promise<{ template: string; title: string }> => {
   const { message, model, provider } = options;
+
+  // If Deepseek is selected, or if provider/model is missing, skip LLM-based template selection
+  if (!provider || !model || provider.name === 'Deepseek') {
+    console.warn(`Skipping LLM-based starter template selection. Provider: ${provider?.name}, Model: ${model}. Defaulting to "blank".`);
+    return {
+      template: 'blank',
+      title: message.substring(0, 50).trim() || 'New Project',
+    };
+  }
+
   const requestBody = {
     message,
     model,
-    provider,
+    provider, // provider here is ProviderInfo, /api/llmcall expects { name: string } for provider
     system: starterTemplateSelectionPrompt(templates),
+    streamOutput: false, // Ensure we get a non-streamed JSON response
   };
-  const response = await fetch('/api/llmcall', {
-    method: 'POST',
-    body: JSON.stringify(requestBody),
-  });
-  const respJson: { text: string } = await response.json();
-  console.log(respJson);
 
-  const { text } = respJson;
-  const selectedTemplate = parseSelectedTemplate(text);
+  let textOutput = '';
+  try {
+    const response = await fetch('/api/llmcall', {
+      method: 'POST',
+      body: JSON.stringify({
+        ...requestBody,
+        provider: { name: provider.name }, // Pass only necessary provider info
+      }),
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+
+    if (!response.ok) {
+      let errorBody = `HTTP error ${response.status}`;
+      let errorDetails: any = {}; // Initialize with a more flexible type or handle specific fields
+      try {
+        const errJson = await response.json() as { message?: string; error?: string; [key: string]: any };
+        errorBody = errJson.message || errJson.error || response.statusText || errorBody;
+        errorDetails = errJson; // Now errJson has a partial type
+      } catch (e) {
+        errorBody = response.statusText || errorBody;
+      }
+      console.error('Error fetching template selection from /api/llmcall:', errorBody, errorDetails);
+      // Fallback to blank template on error
+      return {
+        template: 'blank',
+        title: message.substring(0, 50).trim() || 'New Project',
+      };
+    }
+
+    // Expecting a JSON response like { text: "...", ...other fields from GenerateTextResult }
+    const respJson = await response.json() as { text?: string; [key: string]: any }; 
+    
+    if (typeof respJson.text !== 'string') {
+        console.error('Invalid response format from /api/llmcall, missing text field:', respJson);
+        return { template: 'blank', title: message.substring(0, 50).trim() || 'New Project' };
+    }
+    textOutput = respJson.text;
+    console.log('LLM response for template selection:', textOutput);
+
+  } catch (error) {
+    console.error('Network or JSON parsing error in selectStarterTemplate:', error);
+    // Fallback to blank template on error
+    return {
+      template: 'blank',
+      title: message.substring(0, 50).trim() || 'New Project',
+    };
+  }
+
+  const selectedTemplate = parseSelectedTemplate(textOutput);
 
   if (selectedTemplate) {
     return selectedTemplate;
   } else {
-    console.log('No template selected, using blank template');
-
+    console.log('No valid template selected by LLM, using blank template. LLM output was:', textOutput);
     return {
       template: 'blank',
-      title: '',
+      title: message.substring(0, 50).trim() || 'New Project', // Use part of message for title
     };
   }
 };
 
 const getGitHubRepoContent = async (repoName: string): Promise<{ name: string; path: string; content: string }[]> => {
   try {
-    // Instead of directly fetching from GitHub, use our own API endpoint as a proxy
     const response = await fetch(`/api/github-template?repo=${encodeURIComponent(repoName)}`);
-
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-
-    // Our API will return the files in the format we need
-    const files = (await response.json()) as any;
-
+    const files = (await response.json()) as any; // Assuming API returns the expected array
     return files;
   } catch (error) {
     console.error('Error fetching release contents:', error);
-    throw error;
+    throw error; // Re-throw to be handled by caller
   }
 };
 
 export async function getTemplates(templateName: string, title?: string) {
   const template = STARTER_TEMPLATES.find((t) => t.name == templateName);
-
   if (!template) {
+    console.error(`Template not found: ${templateName}`);
     return null;
   }
 
   const githubRepo = template.githubRepo;
-  const files = await getGitHubRepoContent(githubRepo);
-
-  let filteredFiles = files;
-
-  /*
-   * ignoring common unwanted files
-   * exclude    .git
-   */
-  filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.git') == false);
-
-  /*
-   * exclude    lock files
-   * WE NOW INCLUDE LOCK FILES FOR IMPROVED INSTALL TIMES
-   */
-  {
-    /*
-     *const comminLockFiles = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
-     *filteredFiles = filteredFiles.filter((x) => comminLockFiles.includes(x.name) == false);
-     */
+  let files: { name: string; path: string; content: string }[] = [];
+  try {
+    files = await getGitHubRepoContent(githubRepo);
+  } catch (error) {
+    // If fetching repo content fails, return null or throw, so Chat.client.tsx can handle it
+    console.error(`Failed to get GitHub repo content for ${githubRepo}:`, error);
+    return null; 
   }
 
-  // exclude    .bolt
-  filteredFiles = filteredFiles.filter((x) => x.path.startsWith('.bolt') == false);
 
-  // check for ignore file in .bolt folder
+  let filteredFiles = files;
+  filteredFiles = filteredFiles.filter((x) => !x.path.startsWith('.git'));
+  filteredFiles = filteredFiles.filter((x) => !x.path.startsWith('.bolt'));
+
   const templateIgnoreFile = files.find((x) => x.path.startsWith('.bolt') && x.name == 'ignore');
-
   const filesToImport = {
     files: filteredFiles,
     ignoreFile: [] as typeof filteredFiles,
   };
 
   if (templateIgnoreFile) {
-    // redacting files specified in ignore file
-    const ignorepatterns = templateIgnoreFile.content.split('\n').map((x) => x.trim());
-    const ig = ignore().add(ignorepatterns);
-
-    // filteredFiles = filteredFiles.filter(x => !ig.ignores(x.path))
-    const ignoredFiles = filteredFiles.filter((x) => ig.ignores(x.path));
-
-    filesToImport.files = filteredFiles;
-    filesToImport.ignoreFile = ignoredFiles;
+    const ignorepatterns = templateIgnoreFile.content.split('\n').map((x) => x.trim()).filter(p => p);
+    if (ignorepatterns.length > 0) {
+      const ig = ignore().add(ignorepatterns);
+      const ignoredFiles = filteredFiles.filter((x) => ig.ignores(x.path));
+      // filesToImport.files = filteredFiles.filter((x) => !ig.ignores(x.path)); // This was incorrect, should not filter main files list here
+      filesToImport.ignoreFile = ignoredFiles;
+    }
   }
 
   const assistantMessage = `
-Bolt is initializing your project with the required files using the ${template.name} template.
+SIN is initializing your project with the required files using the ${template.name} template.
 <boltArtifact id="imported-files" title="${title || 'Create initial files'}" type="bundled">
 ${filesToImport.files
   .map(
@@ -195,7 +229,7 @@ ${file.content}
 </boltArtifact>
 `;
   let userMessage = ``;
-  const templatePromptFile = files.filter((x) => x.path.startsWith('.bolt')).find((x) => x.name == 'prompt');
+  const templatePromptFile = files.find((x) => x.path.startsWith('.bolt') && x.name == 'prompt');
 
   if (templatePromptFile) {
     userMessage = `

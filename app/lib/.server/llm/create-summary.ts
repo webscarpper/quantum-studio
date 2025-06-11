@@ -19,6 +19,39 @@ export async function createSummary(props: {
   const { messages, env: serverEnv, apiKeys, providerSettings, onFinish } = props;
   let currentModel = DEFAULT_MODEL;
   let currentProvider = DEFAULT_PROVIDER.name;
+
+  // Determine the actual provider/model from the last user message for the call
+  const lastUserMessage = messages.filter(msg => msg.role === 'user').pop();
+  if (lastUserMessage) {
+    const { model, provider } = extractPropertiesFromMessage(lastUserMessage);
+    currentModel = model;
+    currentProvider = provider;
+  }
+  
+  // If Deepseek is selected, skip LLM-based summary for now to test performance
+  if (currentProvider === 'Deepseek') {
+    logger.warn('Deepseek selected, skipping LLM-based summary generation for performance test.');
+    if (onFinish) {
+      // Provide a dummy successful response for onFinish to proceed
+      onFinish({
+        text: 'Summary generation skipped for Deepseek.',
+        toolCalls: [],
+        toolResults: [],
+        finishReason: 'stop',
+        usage: { promptTokens: 0, completionTokens: 0, totalTokens: 0 },
+        logprobs: undefined,
+        warnings: [], 
+        steps: [], 
+        reasoning: "", 
+        request: {} as any, 
+        response: { messages: [] } as any, 
+        experimental_providerMetadata: undefined,
+        experimental_output: undefined as never, // Added experimental_output as 'undefined as never'
+      });
+    }
+    return 'Summary generation skipped for Deepseek provider.'; // Return a placeholder
+  }
+
   const processedMessages = messages.map((message) => {
     if (message.role === 'user') {
       const { model, provider, content } = extractPropertiesFromMessage(message);
